@@ -32,7 +32,7 @@ This project demonstrates how **bcrypt password hashes** can be verified using a
 
 ## 📥 Clone the Repository
 ```bash
-git clone https://github.com/USERNAME/bcrypt-password-verification.git
+git clone https://github.com/rad3nl337/bcrypt-password-verification.git
 cd bcrypt-password-verification
 ```
 
