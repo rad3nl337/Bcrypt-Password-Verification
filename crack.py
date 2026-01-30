@@ -1,31 +1,37 @@
 # ==========================================
-# bcrypt password checker
-# by : RADEN
+# bcrypt password checker (streaming)
+# Author : RADEN
 # ==========================================
 
 import bcrypt
+import time
 
-# ANSI color codes
+# ANSI colors
 GREEN = "\033[92m"
 RED = "\033[91m"
 CYAN = "\033[96m"
 RESET = "\033[0m"
 
-def load_wordlist(filename):
-    """Load password candidates from wordlist file"""
-    with open(filename, "r", encoding="utf-8", errors="ignore") as f:
-        return [line.strip() for line in f if line.strip()]
-
+# ==============================
+# LOAD TARGET HASH
+# ==============================
 def load_target_hash(filename):
-    """Load bcrypt hash from target file"""
     with open(filename, "rb") as f:
         return f.read().strip()
 
 # ==============================
-# MAIN PROGRAM
+# WORDLIST STREAM (NO RAM LOAD)
 # ==============================
+def wordlist_stream(filename):
+    with open(filename, "r", encoding="utf-8", errors="ignore") as f:
+        for line in f:
+            pw = line.strip()
+            if pw:
+                yield pw
 
-# ASCII Art Watermark - RADEN
+# ==============================
+# MAIN
+# ==============================
 print(f"""{CYAN}
 ██████╗  █████╗ ██████╗ ███████╗███╗   ██╗
 ██╔══██╗██╔══██╗██╔══██╗██╔════╝████╗  ██║
@@ -33,25 +39,36 @@ print(f"""{CYAN}
 ██╔══██╗██╔══██║██║  ██║██╔══╝  ██║╚██╗██║
 ██║  ██║██║  ██║██████╔╝███████╗██║ ╚████║
 ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚═╝  ╚═══╝
-        bcrypt checker | RADEN
+        bcrypt checker | STREAM MODE
 {RESET}""")
 
 try:
     target_hash = load_target_hash("target.txt")
-    wordlist = load_wordlist("wordlist.txt")
-except FileNotFoundError as e:
-    print(f"{RED}[ERROR] File not found: {e}{RESET}")
+except FileNotFoundError:
+    print(f"{RED}[ERROR] target.txt not found{RESET}")
     exit(1)
 
-print(f"Total passwords in wordlist: {len(wordlist)}\n")
+start = time.time()
+checked = 0
+REPORT_EVERY = 10_000   
 
-for word in wordlist:
-    print(f"{RED}Trying password: {word}{RESET}")
-    if bcrypt.checkpw(word.encode("utf-8"), target_hash):
-        print(f"\n{GREEN}[SUCCESS] Password found: {word}{RESET}")
+for password in wordlist_stream("wordlist.txt"):
+    checked += 1
+
+    if bcrypt.checkpw(password.encode("utf-8"), target_hash):
+        elapsed = time.time() - start
+        print(f"\n{GREEN}[SUCCESS] Password found: {password}{RESET}")
+        print(f"Checked   : {checked}")
+        print(f"Time spent: {elapsed:.2f} seconds")
         break
-else:
-    print(f"\n{RED}[FAILED] Password not found in wordlist{RESET}")
 
-# EOF
-# Author: RADEN
+    if checked % REPORT_EVERY == 0:
+        elapsed = time.time() - start
+        speed = checked / elapsed if elapsed > 0 else 0
+        print(f"[INFO] Checked: {checked:,} | {speed:.2f} pwd/sec")
+
+else:
+    elapsed = time.time() - start
+    print(f"\n{RED}[FAILED] Password not found{RESET}")
+    print(f"Checked   : {checked}")
+    print(f"Time spent: {elapsed:.2f} seconds")
